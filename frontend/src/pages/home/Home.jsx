@@ -8,6 +8,7 @@ import NoteEditModal from './components/NoteEditModal';
 import GlobalContext from '../../share/Context/GlobalContext';
 import Cookies from 'js-cookie';
 import Axios from '../../share/AxiosInstance';
+import { AxiosError } from 'axios';
 
 const Home = () => {
   const { user, setStatus } = useContext(GlobalContext);
@@ -46,7 +47,7 @@ const Home = () => {
   };
   const handleNoteCreateClose = () => {
     setOpenCreate(false);
-  };image.png
+  };
 
   // Note Edit Modal
   const handleNoteEditOpen = () => {
@@ -79,9 +80,26 @@ const Home = () => {
   const handleDelete = async () => {
     // TODO: Implement delete note
     // 1. call API to delete note
+    try{
+    const userToken = Cookies.get('UserToken');
+    const response = await Axios.delete('/note/${targetNote.id}', {
+      headers: { Authorization: 'Bearer ${userToken}' },
+    });
     // 2. if successful, set status and remove note from state
-    // 3. if delete note failed, check if error is from calling API or not
-  };
+    if (response.data.success) {
+      setStatus({ severity: 'success', msg: 'Delete note successfully' });
+      setNotes(notes.filter((n) => n.id !== targetNote.id));
+      handleNoteDetailClose();
+    }
+  } catch (error) {
+        // 3. if delete note failed, check if error is from calling API or not
+    if (error instanceof AxiosError && error.response) {
+      setStatus({ severity: 'error', msg: error.response.data.error});
+    } else {
+      setStatus ({ severity: 'error', msg: error.message });
+    }
+  }
+};
 
   return (
     <Container maxWidth="md">

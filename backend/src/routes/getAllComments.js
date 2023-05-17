@@ -4,7 +4,7 @@ import { SuccessResponse } from '../type/response.js';
 
 export const getAllComments = async (r, s) => {
   // TODO : CREATE COMMENT LOGIC
-  const { response } = new ExpressTypeIntecepter(r, s).get();
+  const { response, request } = new ExpressTypeIntecepter(r, s).get();
   const { userId } = response.locals;
 
   const prisma = getPrisma();

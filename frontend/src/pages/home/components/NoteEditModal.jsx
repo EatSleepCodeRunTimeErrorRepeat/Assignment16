@@ -3,6 +3,7 @@ import { Dialog, DialogActions, DialogContent, DialogTitle, Button, TextField } 
 import GlobalContext from '../../../share/Context/GlobalContext';
 import { AxiosError } from 'axios';
 import Cookies from 'js-cookie';
+import Axios from '../../../share/AxiosInstance';
 
 const NoteEditModal = ({ note = {}, open = false, handleClose = () => {}, setNotes = () => {} }) => {
   const [newNote, setNewNote] = useState(note);
@@ -13,11 +14,49 @@ const NoteEditModal = ({ note = {}, open = false, handleClose = () => {}, setNot
     setNewNote(note);
   }, [note]);
 
+  const validateForm = () => {
+    const error = {};
+    if (!newNote.title) error.title = 'Title is required';
+    if (!newNote.description) error.description = 'Description is required';
+    setError(error);
+
+    if (Object.keys(error).length) return false;
+    return true;
+    }
+
   const submit = async () => {
     // TODO: Implement update note
     // 1. validate form
+    if (!validateForm()) return;
+
+    try{
     // 2. call API to update note
+    const userToken = Cookies.get('UserToken');
+    const response = await Axios.patch(
+      '/note',
+      {
+        title: newNote.title,
+        description: newNote.description,
+        noteId: newNote.id,
+      },
+      {
+        headers: { Authorization: `Bearer ${userToken}` },
+      }
+    );
     // 3. if successful, update note in state and close modal
+    if (response.data.success) {
+      setStatus({ severity: 'success', msg: 'Update note successfully' });
+      setNotes((prev) => prev.map((n) => (n.id === newNote.id ? response.data.data : n)));
+      resetAndClose();
+    }
+
+    } catch (error) {
+      if (error instanceof AxiosError && error.response) {
+        setStatus({ severity: 'error', msg: error.response.data.error });
+      } else {
+        setStatus ({ severity: 'error', msg: error.message });
+      }
+    }
     // 4. if update note failed, check if error is from calling API or not
   };
 

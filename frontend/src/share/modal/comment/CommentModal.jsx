@@ -7,7 +7,7 @@ const CommentModal = ({ open = false, handleClose = () => {} }) => {
   const [textField, setTextField] = useState('');
   const [comments, setComments] = useState([]);
 
-  useKeyDown(() => {
+  useKeyDown(() => {  
     handleAddComment();
   }, ['Enter']);
 

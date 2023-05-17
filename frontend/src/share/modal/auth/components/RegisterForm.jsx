@@ -1,7 +1,12 @@
 import { Box, Link, TextField, Typography } from '@mui/material';
 import React, { useContext, useState } from 'react';
+import Axios from '../../../AxiosInstance';
+import { AxiosError } from 'axios';
+import GlobalContext from '../../../Context/GlobalContext';
+import { useMutation } from 'react-query';
 
-const RegisterForm = ({ setIsLogin = () => {}, setStatus = () => {} }) => {
+
+const RegisterForm = ({ setIsLogin = () => {}, }) => {
   const [username, setUsername] = useState('');
   const [usernameError, setUsernameError] = useState('');
   const [email, setEmail] = useState('');
@@ -10,14 +15,116 @@ const RegisterForm = ({ setIsLogin = () => {}, setStatus = () => {} }) => {
   const [passwordError, setPasswordError] = useState('');
   const [rePassword, setRePassword] = useState('');
   const [rePasswordError, setRePasswordError] = useState('');
+  const { setUser, setStatus} = useContext(GlobalContext);
+
+  const registerMutation = useMutation(() => 
+    Axios.post('/register', { 
+      username, 
+      email, 
+      password, 
+    }), 
+    { onSuccess: (data) => { 
+      if (data.data.success) { 
+        setEmailError(''); 
+        setPasswordError(''); 
+        setUsernameError(''); 
+        setRePasswordError(''); 
+        setIsLogin(true); 
+        setStatus({ 
+          msg: data.data.msg, 
+          severity: 'success', 
+        }); 
+      } 
+    }, 
+    onError: (error) => { 
+      setPassword(''); 
+      setRePassword(''); 
+        if (error instanceof AxiosError) 
+        if (error.response) return setStatus({ 
+          msg: error.response.data.error, 
+          severity: 'error',
+        });
+        return setStatus({ 
+          msg: error.message, 
+          severity: 'error', 
+        }); 
+      }, 
+    } 
+  );
+
+  const validateForm = () => {
+    let isValid = true;
+    //check user
+    if(!username) {
+      setUsernameError('Username is required');
+      isValid = false;
+    }
+    //check mail
+    if(!email) {
+      setEmailError('Email is required');
+      isValid = false;
+    }
+    if (!/^[\w-\.]+@([\w\-]+\.)+[\w-]{2,4}$/g.test(email)) {
+      setEmailError('Invalid email format');
+      isValid = false;
+    }
+    //check password
+    if(!password) {
+      setPasswordError('Password is required')
+      isValid = false;
+    }
+    if (!rePassword) {
+      setRePasswordError('Confirm password is required');
+    }
+    if(password !== rePassword){
+      setPasswordError('Password is required');
+      setRePassword('');
+      setPassword('');
+      isValid = false;
+    }
+    return isValid;
+  };
 
   const handleSubmit = async () => {
     // TODO: Implement login
     // 1. validate form
+    if (!validateForm()) return;
+    registerMutation.mutate();
+    try{
     // 2. send request to server
+    const response = await Axios.post('/register', {
+      username,
+      email,
+      password,
+    });
     // 3. if successful, change modal to login mode
+    if (response.data.success) {
+      setIsLogin(true);
+      setStatus({
+        msg: response.data.msg,
+        severity: 'success',
+      });
+    }
+  } catch (e) {
     // 4. if fail, show error message alert, and reset password fields
+      setPassword('');
+      setRePassword('');
+      //check if e are AxiosError
+      if(e instanceof AxiosError)
+        if (e.response)
+        //check if e.response exist
+        return setStatus({
+          msg: e.response.data.error,
+          severity: 'error'
+       });
+       //if e is not AxiosError or respons doenst exist, return error message
+       return setStatus({
+        msg: e.message,
+        severity: 'error'
+       });
+    }
   };
+
   return (
     <Box
       sx={{

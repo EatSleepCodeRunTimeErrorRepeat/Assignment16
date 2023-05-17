@@ -1,5 +1,7 @@
 import { Box, Link, TextField, Typography } from '@mui/material';
-import React, { useState } from 'react';
+import React, { useDebugValue, useState } from 'react';
+import Axios from '../../../AxiosInstance';
+import { AxiosError } from 'axios';
 
 const LoginForm = ({ handleClose = () => {}, setIsLogin = () => {}, setStatus = () => {}, setUser = () => {} }) => {
   const [usernameOrEmail, setUsernameOrEmail] = useState('');
@@ -7,13 +9,54 @@ const LoginForm = ({ handleClose = () => {}, setIsLogin = () => {}, setStatus = 
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
-  const handleSubmit = async () => {
-    // TODO: Implement login
-    // 1. validate form
-    // 2. call API to login
-    // 3. if success, close modal, and update user information.
-    // 4. if fail, show error message, and reset text fields value
+  const validateForm = () => {
+    let isValid = true;
+    if (!usernameOrEmail) {
+      setUsernameOrEmailError('Username or email is required');
+      isValid = false;
+    }
+    if (!password) {
+      setPasswordError('Password is required');
+      isValid = false;
+    }
+    return isValid;
   };
+  const loginMutation = useMutation(() =>
+  Axios.post('/login', { usernameOrEmail, password })
+);
+
+const handleSubmit = async () => {
+  if (!validateForm()) return;
+  loginMutation.mutate();
+};
+
+loginMutation.isSuccess &&
+  setUser({
+    username: loginMutation.data.data.username,
+    email: loginMutation.data.data.email,
+  });
+
+loginMutation.isSuccess &&
+  handleClose() &&
+  setStatus({ msg: loginMutation.data.msg, severity: 'success' });
+
+loginMutation.isError &&
+  setUsernameOrEmail('') &&
+  setPassword('') &&
+  (loginMutation.error instanceof AxiosError
+    ? loginMutation.error.response
+      ? setStatus({
+          msg: loginMutation.error.response.data.error,
+          severity: 'error',
+        })
+      : setStatus({
+          msg: loginMutation.error.message,
+          severity: 'error',
+        })
+    : setStatus({ 
+      msg: loginMutation.error.message, 
+      severity: 'error' 
+    }));
   return (
     <Box
       sx={{
